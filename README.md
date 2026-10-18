@@ -29,10 +29,11 @@ The following arguments are planned for `zfinder`:
 | `--name` | `-n` | String | `--name "log"` | Fuzzily matches an item's name. |
 | `--type` | `-t` | Character | `--type f` | Matches an item's type exactly. Supported values: `f` = file, `d` = directory, `l` = symbolic link. |
 | `--extension` | `-e` | String | `--extension "txt"` | Matches an item's extension exactly. An empty string matches items without an extension. |
-| `--size` | `-s` | Size | `--size <100M` | Matches an item's size exactly. |
+| `--size` | `-s` | Size | `--size "<100M"` | Matches an item's size exactly. |
 | `--max-depth` | `-d` | Number | `--max-depth 2` | Limits the maximum recursion depth. Depth 0 is the base directory. |
 | `--no-threading` | `-nt` | None | `--no-threading` | Disables multithreading during the search. |
 | `--no-color` | `-nc` | None | `--no-color` | Disables colored output. |
+| `--help` | `-h` | None | Prints some helpful text... |
 
 The exact command looks like this:
 ```bash
@@ -49,12 +50,12 @@ The size filter takes a complex input. Size of directories is calculated based o
 
 | Name | Form | Example |
 |---|---|---|
-| Exact match | s | `--size 2G` |
-| Less than | <s | `--size <25M` |
-| Less or equal | <=s | `--size <=980` |
-| Greater than | >s | `--size >1m` |
-| Greater or equal | >=s | `--size >=89` |
-| Between | l..m | `--size 23M..1g` |
+| Exact match | s | `--size "2G"` |
+| Less than | <s | `--size "<25M"` |
+| Less or equal | <=s | `--size "<=980"` |
+| Greater than | >s | `--size ">1m"` |
+| Greater or equal | >=s | `--size ">=89"` |
+| Between | l..m | `--size "23M..1g"` |
 
 For range, the lower limit is inclusive, while the upper limit is exclusive.
 
@@ -76,10 +77,10 @@ Sizes are specified as numbers with an optional suffix. Sizes are measured in by
 ### Examples
 
 ```bash
-zf ./logs --name "test" --type f --size <=50K
+zf ./logs --name "test" --type f --size "<=50K"
 zf src -e "cpp" -t f
 zf . -name "tests" -t d
-zf foo/bar --size 24K..1M
+zf foo/bar --size "24K..1M"
 zf ~/.local/bin --type l --max-depth 0 -nc | uniq | sort
 ```
 
