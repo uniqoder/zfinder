@@ -1,15 +1,9 @@
 #pragma once
 
+#include "filter/filter.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
-
-enum FilterType { Name, Type, Extension, Size };
-
-struct Filter {
-  FilterType type;
-  std::string arg;
-};
 
 struct Args {
   std::string base_dir;
