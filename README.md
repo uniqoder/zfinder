@@ -33,7 +33,7 @@ The following arguments are planned for `zfinder`:
 | `--max-depth` | `-d` | Number | `--max-depth 2` | Limits the maximum recursion depth. Depth 0 is the base directory. |
 | `--no-threading` | `-nt` | None | `--no-threading` | Disables multithreading during the search. |
 | `--no-color` | `-nc` | None | `--no-color` | Disables colored output. |
-| `--help` | `-h` | None | Prints some helpful text... |
+| `--help` | `-h` | None | `-h` | Prints some helpful text... |
 
 The exact command looks like this:
 ```bash
