@@ -4,19 +4,11 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
 #include <string>
 #include <string_view>
 
-enum SizeType { Equal, Less, LessEqual, More, MoreEqual, Range, Unknown };
-
-struct SizeStruct {
-  SizeType type;
-  int64_t a; // used in most cases when only one value is required.
-  int64_t b; // used when two values are required, like in ranges.
-};
-
-const char *SIZE_PREFIXES[] = {"<", "<=", ">", ">="};
+// Prefix order matters! Put the longer prefixes at start! Don't forget!!!
+const char *SIZE_PREFIXES[] = {"<=", ">=", "<", ">"};
 const char SIZE_SUFFIXES[] = {'K', 'k', 'M', 'm', 'G', 'g', 'T', 't'};
 const std::array<int64_t, 256> SIZE_SUFFIX_TO_MULTIPLE = [] {
   std::array<int64_t, 256> a{};
@@ -49,16 +41,17 @@ const std::string getSizePrefix(const std::string_view &s) {
   return "";
 }
 
-const std::string getSizeSuffix(const std::string_view &s) {
+char getSizeSuffix(const std::string_view &s) {
   for (const auto &suffix : SIZE_SUFFIXES) {
     if (s.back() == suffix)
-      return std::string(suffix, 1);
+      return suffix;
   }
 
-  return "";
+  return 0;
 }
 
 SizeType strToSizeType(std::string t) {
+  // std::cout << "[?] Converting '" << t << "' to SizeType.\n";
   if (t == "<")
     return SizeType::Less;
   if (t == "<=")
@@ -72,7 +65,7 @@ SizeType strToSizeType(std::string t) {
   return SizeType::Unknown;
 }
 
-SizeStruct parseSizeArg(std::string_view arg) {
+SizeStruct parseSize(std::string_view arg) {
   // Handle ranges seperately
   const auto range_sep = arg.find("..");
   if (range_sep != std::string::npos) {
@@ -80,8 +73,8 @@ SizeStruct parseSizeArg(std::string_view arg) {
     const auto end = arg.substr(range_sep + 2);
 
     return {.type = SizeType::Range,
-            .a = parseSizeArg(start).a,
-            .b = parseSizeArg(end).a};
+            .a = parseSize(start).a,
+            .b = parseSize(end).a};
   }
 
   // Seperate the structure
@@ -89,16 +82,18 @@ SizeStruct parseSizeArg(std::string_view arg) {
   const auto suffix = getSizeSuffix(arg);
 
   arg.remove_prefix(prefix.length());
-  arg.remove_suffix(suffix.length());
+  arg.remove_suffix(suffix != 0);
 
-  int64_t size = strtoul(arg.data(), nullptr, 10);
-  size *= SIZE_SUFFIX_TO_MULTIPLE[(uint8_t)suffix.back()];
+  int64_t size = strtoll(arg.data(), nullptr, 10);
+  int64_t multiple =
+      suffix == 0 ? 1l : SIZE_SUFFIX_TO_MULTIPLE[(uint8_t)suffix];
+  size *= multiple;
 
-  return {.type = strToSizeType(suffix), .a = size, .b = -1};
+  return {.type = strToSizeType(prefix), .a = size, .b = -1};
 }
 
 bool isValidSizeArg(std::string_view arg) {
-  const auto size = parseSizeArg(arg);
+  const auto size = parseSize(arg);
 
   if (size.type == SizeType::Range) {
     return size.a != -1 && size.b != -1;
@@ -111,7 +106,7 @@ bool isFilterValid(const Filter &filter) {
   switch (filter.type) {
   case FilterType::Name:
   case FilterType::Extension:
-    return true;
+    return !filter.arg.empty();
   case FilterType::Type:
     return isValidTypeArg(filter.arg);
   case FilterType::Size:

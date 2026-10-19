@@ -17,7 +17,7 @@ CPP_SRCS := $(CPP_SRCS_NO_MAIN) $(SRC_DIR)/main.cpp
 OBJS_NO_MAIN := $(addprefix $(BUILD_DIR)/, $(CPP_SRCS_NO_MAIN:.cpp=.cpp.o))
 OBJS = $(addprefix $(BUILD_DIR)/, $(CPP_SRCS:.cpp=.cpp.o))
 
-TEST_SRCS := $(shell find -L ${TEST_DIR} -name '*.hpp') $(TEST_DIR)/main.cpp
+TEST_SRCS := $(TEST_DIR)/main.cpp
 
 all: $(BUILD_DIR)/$(TARGET)
 
