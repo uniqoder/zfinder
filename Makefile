@@ -1,3 +1,5 @@
+PREFIX ?= /usr/local
+BINDIR := $(PREFIX)/bin
 TARGET := zf
 TEST_TARGET := test_all
 
@@ -33,7 +35,13 @@ $(BUILD_DIR)/$(TEST_TARGET): clean $(OBJS_NO_MAIN) $(TEST_SRCS)
 	@mkdir -p "$(dir $@)"
 	$(CXX) $(CFLAGS) -o $@ $(TEST_SRCS) $(OBJS_NO_MAIN) $(LDFLAGS)
 
+install: all
+	install -m 0755 $(BUILD_DIR)/$(TARGET) $(BINDIR)
+
+uninstall: $(BINDIR)/$(TARGET)
+	rm -f $<
+
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: all clean tests
+.PHONY: all clean tests install uninstall
