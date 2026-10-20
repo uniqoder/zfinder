@@ -4,14 +4,18 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <string>
 #include <string_view>
+
+namespace fs = std::filesystem;
 
 // Prefix order matters! Put the longer prefixes at start! Don't forget!!!
 const char *SIZE_PREFIXES[] = {"<=", ">=", "<", ">"};
 const char SIZE_SUFFIXES[] = {'K', 'k', 'M', 'm', 'G', 'g', 'T', 't'};
 const std::array<int64_t, 256> SIZE_SUFFIX_TO_MULTIPLE = [] {
   std::array<int64_t, 256> a{};
+  a[0] = 1l;
   a['K'] = 1000l;
   a['M'] = 1000l * 1000l;
   a['G'] = 1000l * 1000l * 1000l;
@@ -85,9 +89,7 @@ SizeStruct parseSize(std::string_view arg) {
   arg.remove_suffix(suffix != 0);
 
   int64_t size = strtoll(arg.data(), nullptr, 10);
-  int64_t multiple =
-      suffix == 0 ? 1l : SIZE_SUFFIX_TO_MULTIPLE[(uint8_t)suffix];
-  size *= multiple;
+  size *= SIZE_SUFFIX_TO_MULTIPLE[(uint8_t)suffix];
 
   return {.type = strToSizeType(prefix), .a = size, .b = -1};
 }
@@ -111,6 +113,64 @@ bool isFilterValid(const Filter &filter) {
     return isValidTypeArg(filter.arg);
   case FilterType::Size:
     return isValidSizeArg(filter.arg);
+  default:
+    return false;
+  }
+}
+
+bool applyNameFilter(const fs::path &item, const std::string &arg) {
+  return item.string().find(arg) !=
+         std::string::npos; // TODO: Add fuzzy search!
+}
+
+bool applyExtensionFilter(const fs::path &item, const std::string &arg) {
+  auto filename = item.filename().string();
+  auto pos = filename.rfind(arg);
+  return pos != std::string::npos && pos + arg.length() == filename.length();
+}
+
+bool applyTypeFilter(const fs::path &item, const std::string &arg) {
+  if (arg.back() == 'l')
+    return fs::is_symlink(item);
+  if (arg.back() == 'd')
+    return fs::is_directory(item);
+  if (arg.back() == 'f')
+    return fs::is_regular_file(item);
+  return false;
+}
+
+bool applySizeFilter(const fs::path &item, const std::string &arg) {
+  int64_t item_size = fs::file_size(item);
+  auto sizeFilter = parseSize(arg);
+
+  switch (sizeFilter.type) {
+  case SizeType::Equal:
+    return item_size == sizeFilter.a;
+  case SizeType::Less:
+    return item_size < sizeFilter.a;
+  case SizeType::LessEqual:
+    return item_size <= sizeFilter.a;
+  case SizeType::More:
+    return item_size > sizeFilter.a;
+  case SizeType::MoreEqual:
+    return item_size >= sizeFilter.a;
+  case SizeType::Range:
+    return item_size >= sizeFilter.a && item_size < sizeFilter.b;
+  default:
+    return false;
+  }
+}
+
+bool applyFilter(const fs::path &item, const Filter &filter) {
+  switch (filter.type) {
+  case FilterType::Name:
+    return applyNameFilter(item, filter.arg);
+  case FilterType::Extension:
+    return applyExtensionFilter(item, filter.arg);
+  case FilterType::Type:
+    return applyTypeFilter(item, filter.arg);
+  case FilterType::Size:
+    return applySizeFilter(item, filter.arg);
   default:
     return false;
   }

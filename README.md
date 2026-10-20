@@ -42,11 +42,20 @@ zf [base path] [filters]
 
 ### Important Notes
 
-Symbolic links are not followed during the search.
+#### Links
+
+Symbolic links to directories are not followed during the search.
+
+#### Extension
+
+The extension filter just checks if the item name ends with that suffix. This means that you can provide longer extensions like `bak.old.tar.gz`.
+This also means that the filter `name` would match `./src/test/filename` exactly.
 
 #### Size
 
-The size filter takes a complex input. Size of directories is calculated based on its children. Following are the types of input to the size argument:
+The size filter takes a complex input.
+Size of directories is calculated based on its children, the directory's own logical size is not included. Empty directories have size = `0`.
+Following are the types of input to the size argument:
 
 | Name | Form | Example |
 |---|---|---|
