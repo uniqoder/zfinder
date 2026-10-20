@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -21,6 +22,13 @@ struct SizeStruct {
   int64_t b; // used when two values are required, like in ranges.
 };
 
+enum FilterResultType { Found, NotFound };
+struct FilterResult {
+  FilterResultType type;
+  size_t match_start_idx;
+  size_t match_length;
+};
+
 // Checks if a filter is valid based on the provided argument.
 bool isFilterValid(const Filter &filter);
 // Sorts the provided list of filters based on the order in the enum definition.
@@ -29,4 +37,4 @@ void sortFilters(std::vector<Filter> &filters);
 // exposed for testing.
 SizeStruct parseSize(std::string_view s);
 // Returns a boolean indicating whether the file satisfies the filter or not.
-bool applyFilter(const fs::path &file, const Filter &filter);
+FilterResult applyFilter(const fs::path &file, const Filter &filter);

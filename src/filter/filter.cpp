@@ -118,50 +118,79 @@ bool isFilterValid(const Filter &filter) {
   }
 }
 
-bool applyNameFilter(const fs::path &item, const std::string &arg) {
-  return item.string().find(arg) !=
-         std::string::npos; // TODO: Add fuzzy search!
+FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
+  auto pos = item.string().find(arg); // TODO: Add fuzzy search!
+
+  if (pos != std::string::npos)
+    return {.type = FilterResultType::Found,
+            .match_start_idx = pos,
+            .match_length = arg.length()};
+  return {.type = FilterResultType::NotFound,
+          .match_start_idx = 0,
+          .match_length = 0};
 }
 
-bool applyExtensionFilter(const fs::path &item, const std::string &arg) {
+FilterResult applyExtensionFilter(const fs::path &item,
+                                  const std::string &arg) {
   auto filename = item.filename().string();
   auto pos = filename.rfind(arg);
-  return pos != std::string::npos && pos + arg.length() == filename.length();
+
+  if (pos != std::string::npos && pos + arg.length() == filename.length())
+    return {.type = FilterResultType::Found,
+            .match_start_idx = pos,
+            .match_length = arg.length()};
+  return {.type = FilterResultType::NotFound,
+          .match_start_idx = 0,
+          .match_length = 0};
 }
 
-bool applyTypeFilter(const fs::path &item, const std::string &arg) {
+FilterResult applyTypeFilter(const fs::path &item, const std::string &arg) {
+  auto result = [](bool c) {
+    return (FilterResult){.type = c ? FilterResultType::Found
+                                    : FilterResultType::NotFound,
+                          .match_start_idx = 0,
+                          .match_length = 0};
+  };
+
   if (arg.back() == 'l')
-    return fs::is_symlink(item);
+    return result(fs::is_symlink(item));
   if (arg.back() == 'd')
-    return fs::is_directory(item);
+    return result(fs::is_directory(item));
   if (arg.back() == 'f')
-    return fs::is_regular_file(item);
-  return false;
+    return result(fs::is_regular_file(item));
+  return result(false);
 }
 
-bool applySizeFilter(const fs::path &item, const std::string &arg) {
+FilterResult applySizeFilter(const fs::path &item, const std::string &arg) {
+  auto result = [](bool c) {
+    return (FilterResult){.type = c ? FilterResultType::Found
+                                    : FilterResultType::NotFound,
+                          .match_start_idx = 0,
+                          .match_length = 0};
+  };
+
   int64_t item_size = fs::file_size(item);
   auto sizeFilter = parseSize(arg);
 
   switch (sizeFilter.type) {
   case SizeType::Equal:
-    return item_size == sizeFilter.a;
+    return result(item_size == sizeFilter.a);
   case SizeType::Less:
-    return item_size < sizeFilter.a;
+    return result(item_size < sizeFilter.a);
   case SizeType::LessEqual:
-    return item_size <= sizeFilter.a;
+    return result(item_size <= sizeFilter.a);
   case SizeType::More:
-    return item_size > sizeFilter.a;
+    return result(item_size > sizeFilter.a);
   case SizeType::MoreEqual:
-    return item_size >= sizeFilter.a;
+    return result(item_size >= sizeFilter.a);
   case SizeType::Range:
-    return item_size >= sizeFilter.a && item_size < sizeFilter.b;
+    return result(item_size >= sizeFilter.a && item_size < sizeFilter.b);
   default:
-    return false;
+    return result(false);
   }
 }
 
-bool applyFilter(const fs::path &item, const Filter &filter) {
+FilterResult applyFilter(const fs::path &item, const Filter &filter) {
   switch (filter.type) {
   case FilterType::Name:
     return applyNameFilter(item, filter.arg);
@@ -172,6 +201,6 @@ bool applyFilter(const fs::path &item, const Filter &filter) {
   case FilterType::Size:
     return applySizeFilter(item, filter.arg);
   default:
-    return false;
+    return {.type = NotFound, .match_start_idx = 0, .match_length = 0};
   }
 }
