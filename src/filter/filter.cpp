@@ -1,6 +1,7 @@
 #include "filter.hpp"
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -118,6 +119,29 @@ bool isFilterValid(const Filter &filter) {
   }
 }
 
+size_t getSize(fs::path item) {
+  auto st = fs::symlink_status(item);
+
+  if (fs::is_symlink(st)) {
+    item = fs::read_symlink(item);
+    st = fs::symlink_status(item);
+  }
+
+  if (fs::is_regular_file(st)) {
+    return fs::file_size(item);
+  }
+
+  if (fs::is_directory(st)) {
+    size_t size = 0;
+    for (const auto &entry : fs::directory_iterator(item)) {
+      size += getSize(entry);
+    }
+    return size;
+  }
+
+  return 0;
+}
+
 FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
   auto pos = item.string().find(arg); // TODO: Add fuzzy search!
 
@@ -152,12 +176,14 @@ FilterResult applyTypeFilter(const fs::path &item, const std::string &arg) {
                           .match_length = 0};
   };
 
+  auto st = fs::symlink_status(item);
+
   if (arg.back() == 'l')
-    return result(fs::is_symlink(item));
+    return result(fs::is_symlink(st));
   if (arg.back() == 'd')
-    return result(fs::is_directory(item));
+    return result(fs::is_directory(st));
   if (arg.back() == 'f')
-    return result(fs::is_regular_file(item));
+    return result(fs::is_regular_file(st));
   return result(false);
 }
 
@@ -169,7 +195,7 @@ FilterResult applySizeFilter(const fs::path &item, const std::string &arg) {
                           .match_length = 0};
   };
 
-  int64_t item_size = fs::file_size(item);
+  int64_t item_size = getSize(item);
   auto sizeFilter = parseSize(arg);
 
   switch (sizeFilter.type) {
@@ -191,6 +217,9 @@ FilterResult applySizeFilter(const fs::path &item, const std::string &arg) {
 }
 
 FilterResult applyFilter(const fs::path &item, const Filter &filter) {
+  if (!fs::exists(item))
+    return {.type = NotFound, .match_start_idx = 0, .match_length = 0};
+
   switch (filter.type) {
   case FilterType::Name:
     return applyNameFilter(item, filter.arg);

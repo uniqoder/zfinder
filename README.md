@@ -117,5 +117,5 @@ make
 You can then run the binary from the `build` directory. To install it so that it can be run from anywhere, use:
 
 ```bash
-make install
+sudo make install
 ```

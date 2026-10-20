@@ -71,7 +71,7 @@ Args parse_arguments(int argc, char **argv) {
   Args args{};
   args.base_dir = argv[1];
 
-  for (int i = 1; i < argc; i++) {
+  for (int i = 2; i < argc; i++) {
     if (streq(argv[i], "--name") || streq(argv[i], "-n")) {
       if (i >= argc) {
         std::cerr
@@ -120,6 +120,8 @@ Args parse_arguments(int argc, char **argv) {
     } else if (streq(argv[i], "--help") || streq(argv[i], "-h")) {
       print_help(argv[0]);
       exit(EXIT_SUCCESS);
+    } else {
+      std::cout << "Warning: Skipping unknown argument: " << argv[i] << "\n";
     }
   }
 

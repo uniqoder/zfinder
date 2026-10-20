@@ -8,7 +8,7 @@ SRC_DIR := src
 TEST_DIR := tests
 
 CXX := g++
-CFLAGS := -Werror -Wall -Wextra -I$(SRC_DIR)
+CFLAGS := -Werror -Wall -Wextra -I$(SRC_DIR) -g
 LDFLAGS := -lm
 
 CPP_SRCS_NO_MAIN := $(shell find -L ${SRC_DIR} -name '*.cpp' ! -name 'main.cpp')
