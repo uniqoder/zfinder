@@ -16,33 +16,38 @@ std::vector<SearchResult> performSearch(const fs::path &root,
                                         uint32_t max_depth) {
   std::vector<SearchResult> results;
 
+  bool isMatch;
+  SearchResult result;
   for (const auto &entry : fs::directory_iterator(root)) {
-    auto *result = new SearchResult();
-    result->item_path = entry.path();
+    isMatch = true;
+    result.match_starts.clear();
+    result.match_ends.clear();
+    result.item_path = entry.path();
+
+    fs::file_status fstatus = entry.symlink_status();
 
     for (const auto &filter : filters) {
-      auto fresult = applyFilter(entry.path(), filter);
+      auto fresult = applyFilter(result.item_path, filter, fstatus);
       if (fresult.type == FilterResultType::Found) {
         if (std::max(fresult.match_length, fresult.match_start_idx) == 0)
           continue;
 
-        result->match_starts.push_back(fresult.match_start_idx);
-        result->match_ends.push_back(fresult.match_start_idx +
-                                     fresult.match_length);
+        result.match_starts.push_back(fresult.match_start_idx);
+        result.match_ends.push_back(fresult.match_start_idx +
+                                    fresult.match_length);
       } else {
-        delete result;
-        result = nullptr;
+        isMatch = false;
         break;
       }
     }
 
-    if (result != nullptr) {
-      results.push_back(*result);
-      delete result;
+    if (isMatch) {
+      results.push_back(result);
     }
 
-    if (fs::is_directory(entry.path()) && max_depth > 0) {
-      auto child_results = performSearch(entry.path(), filters, max_depth - 1);
+    if (fs::is_directory(fstatus) && max_depth > 0) {
+      auto child_results =
+          performSearch(result.item_path, filters, max_depth - 1);
       results.reserve(results.size() + child_results.size());
       results.insert(results.end(), child_results.begin(), child_results.end());
     }

@@ -9,7 +9,7 @@
 namespace fs = std::filesystem;
 
 // The order of filter names matters for deciding which filter to use first
-enum FilterType { Type, Size, Extension, Name };
+enum FilterType { Extension, Name, Type, Size };
 struct Filter {
   FilterType type;
   std::string arg;
@@ -37,4 +37,5 @@ void sortFilters(std::vector<Filter> &filters);
 // exposed for testing.
 SizeStruct parseSize(std::string_view s);
 // Returns a boolean indicating whether the file satisfies the filter or not.
-FilterResult applyFilter(const fs::path &file, const Filter &filter);
+FilterResult applyFilter(const fs::path &file, const Filter &filter,
+                         fs::file_status fstatus);

@@ -185,15 +185,15 @@ void test_extension_filter() {
   Filter filter5 = {.type = FilterType::Extension, .arg = "full"};
 
   try {
-    check(applyFilter("src/test/hello.txt", filter1),
+    check(applyFilter("src/test/hello.txt", filter1).type == Found,
           "extension mismatch for 'src/test/hello.txt': expected = txt");
-    check(applyFilter("backup.tar.gz", filter2),
+    check(applyFilter("backup.tar.gz", filter2).type == Found,
           "extension mismatch for 'backup.tar.gz': expected = .tar.gz");
-    check(applyFilter("hello.txt.test", filter3),
+    check(applyFilter("hello.txt.test", filter3).type == Found,
           "extension mismatch for 'hello.txt.test': expected = test");
-    check(!applyFilter("src/core/main.c", filter4),
+    check(!applyFilter("src/core/main.c", filter4).type == Found,
           "extension mismatch for 'src/core/main.c': expected = cpp");
-    check(applyFilter("bin/full", filter5),
+    check(applyFilter("bin/full", filter5).type == Found,
           "extension mismatch for 'bin/full': expected = full");
   } catch (const std::exception &) {
     throw;
@@ -219,22 +219,22 @@ void test_type_filter() {
   Filter filter_l = {.type = FilterType::Type, .arg = "l"};
 
   try {
-    check(applyFilter(ROOT / "hello.txt", filter_f),
+    check(applyFilter(ROOT / "hello.txt", filter_f).type == Found,
           std::string("type mismatch: expected = f, actual = ") +
               getItemType(ROOT / "hello.txt"));
-    check(applyFilter(ROOT / "depth1", filter_d),
+    check(applyFilter(ROOT / "depth1", filter_d).type == Found,
           std::string("type mismatch: expected = d, actual = ") +
               getItemType(ROOT / "depth1"));
-    check(applyFilter(ROOT / "depth1/hello - shortcut", filter_l),
+    check(applyFilter(ROOT / "depth1/hello - shortcut", filter_l).type == Found,
           std::string("type mismatch: expected = l, actual = ") +
               getItemType(ROOT / "depth1/hello - shortcut"));
-    check(!applyFilter(ROOT / "hello.txt", filter_d),
+    check(applyFilter(ROOT / "hello.txt", filter_d).type == NotFound,
           std::string("type mismatch: expected = d, actual = ") +
               getItemType(ROOT / "hello.txt"));
-    check(!applyFilter(ROOT / "depth1", filter_f),
+    check(applyFilter(ROOT / "depth1", filter_f).type == NotFound,
           std::string("type mismatch: expected = f, actual = ") +
               getItemType(ROOT / "depth1"));
-    check(!applyFilter(ROOT / "hello.txt", filter_l),
+    check(applyFilter(ROOT / "hello.txt", filter_l).type == NotFound,
           std::string("type mismatch: expected = l, actual = ") +
               getItemType(ROOT / "hello.txt"));
   } catch (const std::exception &) {
@@ -253,19 +253,19 @@ void test_size_filter() {
   Filter filter5 = {.type = FilterType::Size, .arg = "5..13"};
 
   try {
-    check(applyFilter(ROOT / "hello.txt", filter1),
+    check(applyFilter(ROOT / "hello.txt", filter1).type == Found,
           "size mismatch: expected = 12, actual = " +
               std::to_string(fs::file_size(ROOT / "hello.txt")));
-    check(applyFilter(ROOT / "backup.tar.gz", filter2),
+    check(applyFilter(ROOT / "backup.tar.gz", filter2).type == Found,
           "size mismatch: expected = <1,000,000, actual = " +
               std::to_string(fs::file_size(ROOT / "backup.tar.gz")));
-    check(applyFilter(ROOT / "depth1/sparse.dat", filter3),
+    check(applyFilter(ROOT / "depth1/sparse.dat", filter3).type == Found,
           "size mismatch: expected = >=1,073,741,824, actual = " +
               std::to_string(fs::file_size(ROOT / "depth1/sparse.dat")));
-    check(!applyFilter(ROOT / "hello.txt", filter4),
+    check(applyFilter(ROOT / "hello.txt", filter4).type == NotFound,
           "size mismatch: expected = 5..12, actual = " +
               std::to_string(fs::file_size(ROOT / "hello.txt")));
-    check(applyFilter(ROOT / "hello.txt", filter5),
+    check(applyFilter(ROOT / "hello.txt", filter5).type == Found,
           "size mismatch: expected = 5..13, actual = " +
               std::to_string(fs::file_size(ROOT / "hello.txt")));
   } catch (const std::exception &) {
@@ -279,15 +279,15 @@ void test_name_filter() {
   Filter filter3 = {.type = FilterType::Name, .arg = "src/main.cpp"};
   Filter filter4 = {.type = FilterType::Name, .arg = "bak.tar"};
 
-  check(applyFilter("~/test", filter1),
+  check(applyFilter("~/test", filter1).type == Found,
         "name mismatch: query = 'test' should match candidate = '~/test'");
-  check(applyFilter("/home/you/games/retry.me", filter2),
+  check(applyFilter("/home/you/games/retry.me", filter2).type == Found,
         "name mismatch: query = 'retry.me' should match candidate = "
         "'/home/you/games/retry.me'");
-  check(applyFilter("src/main.cpp", filter3),
+  check(applyFilter("src/main.cpp", filter3).type == Found,
         "name mismatch: query = 'src/main.cpp' should match candidate = "
         "'~/src/main.cpp'");
-  check(!applyFilter("bak", filter4),
+  check(applyFilter("bak", filter4).type == NotFound,
         "name mismatch: query = 'bak.tar' should not match candidate = 'bak'");
 }
 

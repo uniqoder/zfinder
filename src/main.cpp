@@ -35,7 +35,8 @@ int main(int argc, char *argv[]) {
 
   for (const auto &filter : args.filters) {
     if (!isFilterValid(filter)) {
-      std::cerr << "Error: Invalid argument to " << getFilterName(filter)
+      std::cerr << "Error: Invalid argument '" << filter.arg << "' to "
+                << getFilterName(filter)
                 << " filter. Use --help flag to see the usage.\n";
       return 3;
     }

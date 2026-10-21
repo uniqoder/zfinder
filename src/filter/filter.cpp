@@ -1,20 +1,26 @@
 #include "filter.hpp"
 #include <algorithm>
 #include <array>
+#include <bits/fs_dir.h>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <iostream>
+#include <iterator>
+#include <map>
 #include <string>
 #include <string_view>
+
+#define MAX_DIR_CACHE_COUNT 1024
 
 namespace fs = std::filesystem;
 
 // Prefix order matters! Put the longer prefixes at start! Don't forget!!!
 const char *SIZE_PREFIXES[] = {"<=", ">=", "<", ">"};
 const char SIZE_SUFFIXES[] = {'K', 'k', 'M', 'm', 'G', 'g', 'T', 't'};
-const std::array<int64_t, 256> SIZE_SUFFIX_TO_MULTIPLE = [] {
+const auto SIZE_SUFFIX_TO_MULTIPLE = [] {
   std::array<int64_t, 256> a{};
   a[0] = 1l;
   a['K'] = 1000l;
@@ -27,6 +33,8 @@ const std::array<int64_t, 256> SIZE_SUFFIX_TO_MULTIPLE = [] {
   a['t'] = 1024l * 1024l * 1024l * 1024l;
   return a;
 }();
+
+std::map<std::string, size_t> directory_size_cache;
 
 void sortFilters(std::vector<Filter> &filters) {
   std::sort(filters.begin(), filters.end(),
@@ -119,23 +127,36 @@ bool isFilterValid(const Filter &filter) {
   }
 }
 
-size_t getSize(fs::path item) {
-  auto st = fs::symlink_status(item);
+size_t getSize(fs::path item, fs::file_status fstatus) {
+  if (fs::is_symlink(fstatus)) {
+    if (fs::is_directory(fstatus)) {
+      return fs::file_size(item); // Don't follow symlinks to directories
+    }
 
-  if (fs::is_symlink(st)) {
     item = fs::read_symlink(item);
-    st = fs::symlink_status(item);
+    fstatus = fs::symlink_status(item);
   }
 
-  if (fs::is_regular_file(st)) {
+  if (fs::is_regular_file(fstatus)) {
     return fs::file_size(item);
   }
 
-  if (fs::is_directory(st)) {
-    size_t size = 0;
-    for (const auto &entry : fs::directory_iterator(item)) {
-      size += getSize(entry);
+  if (fs::is_directory(fstatus)) {
+    if (directory_size_cache.find(item.string()) !=
+        directory_size_cache.end()) {
+      std::cout << "[?] Reading size from cache.\n";
+      return directory_size_cache.at(item.string());
     }
+
+    size_t size = 0;
+    size_t child_count = 0;
+    for (const auto &entry : fs::directory_iterator(item)) {
+      child_count++;
+      size += getSize(entry, fs::symlink_status(entry));
+    }
+
+    if (child_count > 0 && directory_size_cache.size() < MAX_DIR_CACHE_COUNT)
+      directory_size_cache[item.string()] = size;
     return size;
   }
 
@@ -168,7 +189,7 @@ FilterResult applyExtensionFilter(const fs::path &item,
           .match_length = 0};
 }
 
-FilterResult applyTypeFilter(const fs::path &item, const std::string &arg) {
+FilterResult applyTypeFilter(fs::file_status fstatus, const std::string &arg) {
   auto result = [](bool c) {
     return (FilterResult){.type = c ? FilterResultType::Found
                                     : FilterResultType::NotFound,
@@ -176,18 +197,17 @@ FilterResult applyTypeFilter(const fs::path &item, const std::string &arg) {
                           .match_length = 0};
   };
 
-  auto st = fs::symlink_status(item);
-
   if (arg.back() == 'l')
-    return result(fs::is_symlink(st));
+    return result(fs::is_symlink(fstatus));
   if (arg.back() == 'd')
-    return result(fs::is_directory(st));
+    return result(fs::is_directory(fstatus));
   if (arg.back() == 'f')
-    return result(fs::is_regular_file(st));
+    return result(fs::is_regular_file(fstatus));
   return result(false);
 }
 
-FilterResult applySizeFilter(const fs::path &item, const std::string &arg) {
+FilterResult applySizeFilter(const fs::path &item, const std::string &arg,
+                             fs::file_status status) {
   auto result = [](bool c) {
     return (FilterResult){.type = c ? FilterResultType::Found
                                     : FilterResultType::NotFound,
@@ -195,7 +215,7 @@ FilterResult applySizeFilter(const fs::path &item, const std::string &arg) {
                           .match_length = 0};
   };
 
-  int64_t item_size = getSize(item);
+  int64_t item_size = getSize(item, status);
   auto sizeFilter = parseSize(arg);
 
   switch (sizeFilter.type) {
@@ -216,7 +236,8 @@ FilterResult applySizeFilter(const fs::path &item, const std::string &arg) {
   }
 }
 
-FilterResult applyFilter(const fs::path &item, const Filter &filter) {
+FilterResult applyFilter(const fs::path &item, const Filter &filter,
+                         fs::file_status fstatus) {
   if (!fs::exists(item))
     return {.type = NotFound, .match_start_idx = 0, .match_length = 0};
 
@@ -226,9 +247,9 @@ FilterResult applyFilter(const fs::path &item, const Filter &filter) {
   case FilterType::Extension:
     return applyExtensionFilter(item, filter.arg);
   case FilterType::Type:
-    return applyTypeFilter(item, filter.arg);
+    return applyTypeFilter(fstatus, filter.arg);
   case FilterType::Size:
-    return applySizeFilter(item, filter.arg);
+    return applySizeFilter(item, filter.arg, fstatus);
   default:
     return {.type = NotFound, .match_start_idx = 0, .match_length = 0};
   }

@@ -119,3 +119,9 @@ You can then run the binary from the `build` directory. To install it so that it
 ```bash
 sudo make install
 ```
+
+If you need to uninstall it, just go to the repo directory and run:
+
+```bash
+sudo make uninstall
+```
