@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <array>
 #include <bits/fs_dir.h>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include <iostream>
 #include <map>
 #include <string>
 #include <string_view>
@@ -144,7 +144,6 @@ size_t getSize(fs::path item, fs::file_status fstatus) {
   if (fs::is_directory(fstatus)) {
     if (directory_size_cache.find(item.string()) !=
         directory_size_cache.end()) {
-      std::cout << "[?] Reading size from cache.\n";
       return directory_size_cache.at(item.string());
     }
 
@@ -164,7 +163,14 @@ size_t getSize(fs::path item, fs::file_status fstatus) {
 }
 
 FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
-  auto target = item.stem().filename().string();
+  auto target = item.filename().string();
+  if (arg.find('.') == std::string::npos) {
+    std::string::size_type pos = target.find('.');
+    if (pos != std::string::npos) {
+      target.erase(pos);
+    }
+  }
+
   auto accuracy = normalized_edit_distance(arg, target);
 
   return {.type = Found,
@@ -189,21 +195,24 @@ FilterResult applyExtensionFilter(const fs::path &item,
           .score = 0};
 }
 
-FilterResult applyTypeFilter(fs::file_status fstatus, const std::string &arg) {
+FilterResult applyTypeFilter(fs::file_status status, const std::string &arg) {
   auto result = [](bool c) {
-    return (FilterResult){.type = c ? FilterResultType::Found
-                                    : FilterResultType::NotFound,
-                          .match_start_idx = 0,
-                          .match_length = 0,
-                          .score = 0};
+    return (FilterResult){
+        .type = (c ? FilterResultType::Found : FilterResultType::NotFound),
+        .match_start_idx = 0,
+        .match_length = 0,
+        .score = 0};
   };
 
+  if (!fs::exists(status))
+    return result(false);
+
   if (arg.back() == 'l')
-    return result(fs::is_symlink(fstatus));
+    return result(fs::is_symlink(status));
   if (arg.back() == 'd')
-    return result(fs::is_directory(fstatus));
+    return result(fs::is_directory(status));
   if (arg.back() == 'f')
-    return result(fs::is_regular_file(fstatus));
+    return result(fs::is_regular_file(status));
   return result(false);
 }
 
@@ -216,6 +225,9 @@ FilterResult applySizeFilter(const fs::path &item, const std::string &arg,
                           .match_length = 0,
                           .score = 0};
   };
+
+  if (!fs::exists(status))
+    return result(false);
 
   int64_t item_size = getSize(item, status);
   auto sizeFilter = parseSize(arg);
@@ -240,9 +252,8 @@ FilterResult applySizeFilter(const fs::path &item, const std::string &arg,
 
 FilterResult applyFilter(const fs::path &item, const Filter &filter,
                          fs::file_status fstatus) {
-  if (!fs::exists(item))
-    return {
-        .type = NotFound, .match_start_idx = 0, .match_length = 0, .score = 0};
+  if (!fs::status_known(fstatus))
+    fstatus = fs::symlink_status(item);
 
   switch (filter.type) {
   case FilterType::Name:

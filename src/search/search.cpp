@@ -28,7 +28,7 @@ std::vector<SearchResult> performSearch(const fs::path &root,
     for (const auto &filter : filters) {
       auto fresult = applyFilter(result.item_path, filter, fstatus);
       if (fresult.type == FilterResultType::Found) {
-        if (fresult.score > 0.2f) {
+        if (fresult.score > 0.6f) {
           result.accuracy = fresult.score;
         } else {
           isMatch = false;

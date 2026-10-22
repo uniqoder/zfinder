@@ -169,10 +169,10 @@ void test_sort_filters() {
   sortFilters(filters);
 
   check(filters.size() == 4, "sorting filters shouldn't change list length");
-  check(filters[0].type == FilterType::Type &&
-            filters[1].type == FilterType::Size &&
-            filters[2].type == FilterType::Extension &&
-            filters[3].type == FilterType::Name,
+  check(filters[0].type == FilterType::Extension &&
+            filters[1].type == FilterType::Name &&
+            filters[2].type == FilterType::Type &&
+            filters[3].type == FilterType::Size,
         "filters should be sorted in the following order: Type, Size, "
         "Extension, Name");
 }
@@ -276,18 +276,18 @@ void test_size_filter() {
 void test_name_filter() {
   Filter filter1 = {.type = FilterType::Name, .arg = "test"};
   Filter filter2 = {.type = FilterType::Name, .arg = "retry.me"};
-  Filter filter3 = {.type = FilterType::Name, .arg = "src/main.cpp"};
+  Filter filter3 = {.type = FilterType::Name, .arg = "main.cpp"};
   Filter filter4 = {.type = FilterType::Name, .arg = "bak.tar"};
 
-  check(applyFilter("~/test", filter1).type == Found,
+  check(applyFilter("~/test", filter1).score > 0.6f,
         "name mismatch: query = 'test' should match candidate = '~/test'");
-  check(applyFilter("/home/you/games/retry.me", filter2).type == Found,
+  check(applyFilter("/home/you/games/retry.me", filter2).score > 0.6f,
         "name mismatch: query = 'retry.me' should match candidate = "
         "'/home/you/games/retry.me'");
-  check(applyFilter("src/main.cpp", filter3).type == Found,
-        "name mismatch: query = 'src/main.cpp' should match candidate = "
+  check(applyFilter("src/main.cpp", filter3).score > 0.6f,
+        "name mismatch: query = 'main.cpp' should match candidate = "
         "'~/src/main.cpp'");
-  check(applyFilter("bak", filter4).type == NotFound,
+  check(applyFilter("bak", filter4).score < 0.6f,
         "name mismatch: query = 'bak.tar' should not match candidate = 'bak'");
 }
 

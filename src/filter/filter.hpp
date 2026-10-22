@@ -39,4 +39,4 @@ void sortFilters(std::vector<Filter> &filters);
 SizeStruct parseSize(std::string_view s);
 // Returns a boolean indicating whether the file satisfies the filter or not.
 FilterResult applyFilter(const fs::path &file, const Filter &filter,
-                         fs::file_status fstatus);
+                         fs::file_status fstatus = {});
