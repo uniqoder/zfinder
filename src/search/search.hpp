@@ -12,7 +12,7 @@ struct SearchResult {
   fs::path item_path;
   std::vector<size_t> match_starts;
   std::vector<size_t> match_ends;
-  size_t rank;
+  float accuracy;
 };
 
 void sortSearchResults(std::vector<SearchResult> &results);

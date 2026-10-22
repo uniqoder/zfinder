@@ -1,6 +1,7 @@
 #include "cli/argparser.hpp"
 #include "filter/filter.hpp"
 #include "search/search.hpp"
+#include <cmath>
 #include <filesystem>
 #include <iostream>
 
@@ -47,7 +48,8 @@ int main(int argc, char *argv[]) {
   sortSearchResults(results);
 
   for (const auto &result : results) {
-    std::cout << result.item_path.string() << "\n";
+    int score = std::round(result.accuracy * 100);
+    std::cout << score << "% " << result.item_path.string() << "\n";
   }
 
   return 0;

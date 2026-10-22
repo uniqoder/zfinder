@@ -1,4 +1,5 @@
 #include "filter.hpp"
+#include "search/fuzzy.hpp"
 #include <algorithm>
 #include <array>
 #include <bits/fs_dir.h>
@@ -8,7 +9,6 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
-#include <iterator>
 #include <map>
 #include <string>
 #include <string_view>
@@ -164,15 +164,13 @@ size_t getSize(fs::path item, fs::file_status fstatus) {
 }
 
 FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
-  auto pos = item.string().find(arg); // TODO: Add fuzzy search!
+  auto target = item.stem().filename().string();
+  auto accuracy = normalized_edit_distance(arg, target);
 
-  if (pos != std::string::npos)
-    return {.type = FilterResultType::Found,
-            .match_start_idx = pos,
-            .match_length = arg.length()};
-  return {.type = FilterResultType::NotFound,
+  return {.type = Found,
           .match_start_idx = 0,
-          .match_length = 0};
+          .match_length = 0,
+          .score = accuracy};
 }
 
 FilterResult applyExtensionFilter(const fs::path &item,
@@ -183,10 +181,12 @@ FilterResult applyExtensionFilter(const fs::path &item,
   if (pos != std::string::npos && pos + arg.length() == filename.length())
     return {.type = FilterResultType::Found,
             .match_start_idx = pos,
-            .match_length = arg.length()};
+            .match_length = arg.length(),
+            .score = 0};
   return {.type = FilterResultType::NotFound,
           .match_start_idx = 0,
-          .match_length = 0};
+          .match_length = 0,
+          .score = 0};
 }
 
 FilterResult applyTypeFilter(fs::file_status fstatus, const std::string &arg) {
@@ -194,7 +194,8 @@ FilterResult applyTypeFilter(fs::file_status fstatus, const std::string &arg) {
     return (FilterResult){.type = c ? FilterResultType::Found
                                     : FilterResultType::NotFound,
                           .match_start_idx = 0,
-                          .match_length = 0};
+                          .match_length = 0,
+                          .score = 0};
   };
 
   if (arg.back() == 'l')
@@ -212,7 +213,8 @@ FilterResult applySizeFilter(const fs::path &item, const std::string &arg,
     return (FilterResult){.type = c ? FilterResultType::Found
                                     : FilterResultType::NotFound,
                           .match_start_idx = 0,
-                          .match_length = 0};
+                          .match_length = 0,
+                          .score = 0};
   };
 
   int64_t item_size = getSize(item, status);
@@ -239,7 +241,8 @@ FilterResult applySizeFilter(const fs::path &item, const std::string &arg,
 FilterResult applyFilter(const fs::path &item, const Filter &filter,
                          fs::file_status fstatus) {
   if (!fs::exists(item))
-    return {.type = NotFound, .match_start_idx = 0, .match_length = 0};
+    return {
+        .type = NotFound, .match_start_idx = 0, .match_length = 0, .score = 0};
 
   switch (filter.type) {
   case FilterType::Name:
@@ -251,6 +254,7 @@ FilterResult applyFilter(const fs::path &item, const Filter &filter,
   case FilterType::Size:
     return applySizeFilter(item, filter.arg, fstatus);
   default:
-    return {.type = NotFound, .match_start_idx = 0, .match_length = 0};
+    return {
+        .type = NotFound, .match_start_idx = 0, .match_length = 0, .score = 0};
   }
 }

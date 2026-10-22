@@ -33,6 +33,7 @@ tests: $(BUILD_DIR)/$(TEST_TARGET)
 	./$(BUILD_DIR)/$(TEST_TARGET)
 
 $(BUILD_DIR)/$(TARGET): $(OBJS)
+	@mkdir -p "$(dir $@)"
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(BUILD_DIR)/%.cpp.o: %.cpp

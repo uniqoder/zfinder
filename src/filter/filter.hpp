@@ -27,6 +27,7 @@ struct FilterResult {
   FilterResultType type;
   size_t match_start_idx;
   size_t match_length;
+  float score;
 };
 
 // Checks if a filter is valid based on the provided argument.
