@@ -200,47 +200,31 @@ FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
   auto target_parts = split_str(item.filename().string(), '.');
   auto query_parts = split_str(arg, '.');
 
-  if (target_parts.size() == 0 || query_parts.size() == 0)
-    throw std::runtime_error(
-        "NameFilter: couldn't split target or query. They shouldn't be empty.");
-
   auto target_stem = target_parts[0];
-  auto query_stem = query_parts[0];
-  auto stem_acc = normalized_edit_distance(query_stem, target_stem);
 
-  auto ext_acc_sum = 0.f;
-  auto ext_acc_count = 0u;
+  auto acc_sum = 0.f;
+  auto acc_count = 0u;
   for (const auto &qpart : query_parts) {
     // Get the maximum accuracy for this query part between every part of target
-    // except first
     auto max_acc = 0.f;
-    for (size_t tidx = 1; tidx < target_parts.size(); tidx++) {
-      auto part_acc = normalized_edit_distance(qpart, target_parts[tidx]);
+    for (const auto &tpart : target_parts) {
+      auto part_acc = normalized_edit_distance(qpart, tpart);
       if (part_acc > max_acc) {
         max_acc = part_acc;
       }
     }
 
     // Don't update count if we haven't found a single match yet
-    if (ext_acc_sum != 0 || max_acc > 0.6f)
-      ext_acc_count++;
-    ext_acc_sum += max_acc;
+    if (true || acc_sum != 0 || max_acc > 0.6f) {
+      acc_count++;
+      acc_sum += max_acc;
+    }
   }
 
   // Add a penalty if the query and target have different number of parts
-  ext_acc_count += std::abs((float)target_parts.size() - query_parts.size());
+  acc_count += std::abs((float)target_parts.size() - query_parts.size());
 
-  auto ext_acc = ext_acc_sum / (ext_acc_count ? ext_acc_count : 1u);
-
-  // if (target_stem == "main")
-  //   std::cout << "Query: " << vec_to_str(query_parts)
-  //             << ", Target: " << vec_to_str(target_parts)
-  //             << ", Stem Acc: " << stem_acc << ", Ext Acc: " << ext_acc
-  //             << std::endl;
-
-  // Weighted sum
-  auto neg_ext_acc = ext_acc_count == 0 ? 1.f - ext_acc : ext_acc;
-  auto accuracy = 0.7f * stem_acc + 0.3f * neg_ext_acc;
+  auto accuracy = acc_sum / acc_count;
   return {.type = Found,
           .match_start_idx = 0,
           .match_length = 0,
