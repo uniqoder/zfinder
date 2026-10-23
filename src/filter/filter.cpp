@@ -9,9 +9,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <iostream>
 #include <map>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #define MAX_DIR_CACHE_COUNT 1024
 
@@ -162,17 +166,81 @@ size_t getSize(fs::path item, fs::file_status fstatus) {
   return 0;
 }
 
-FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
-  auto target = item.filename().string();
-  if (arg.find('.') == std::string::npos) {
-    std::string::size_type pos = target.find('.');
-    if (pos != std::string::npos) {
-      target.erase(pos);
+std::vector<std::string> split_str(std::string str, char sep) {
+  std::vector<std::string> parts;
+  // auto max_part_count = std::count(str.begin(), str.end(), '.') * 2;
+  // parts.reserve(max_part_count);
+
+  size_t start = 0;
+  for (size_t end = 0; end < str.length(); end++) {
+    if (str[end] == sep) {
+      if (start != end)
+        parts.push_back(str.substr(start, end - start));
+      start = end + 1;
     }
   }
 
-  auto accuracy = normalized_edit_distance(arg, target);
+  if (start != str.length()) // push the last part
+    parts.push_back(str.substr(start, str.length() - start));
 
+  return parts;
+}
+
+template <typename T> std::string vec_to_str(const std::vector<T> &vec) {
+  std::ostringstream oss;
+  oss << "[";
+  for (size_t i = 0; i < vec.size(); i++) {
+    oss << vec[i] << (i < vec.size() - 1 ? ", " : "]");
+  }
+
+  return oss.str();
+}
+
+FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
+  auto target_parts = split_str(item.filename().string(), '.');
+  auto query_parts = split_str(arg, '.');
+
+  if (target_parts.size() == 0 || query_parts.size() == 0)
+    throw std::runtime_error(
+        "NameFilter: couldn't split target or query. They shouldn't be empty.");
+
+  auto target_stem = target_parts[0];
+  auto query_stem = query_parts[0];
+  auto stem_acc = normalized_edit_distance(query_stem, target_stem);
+
+  auto ext_acc_sum = 0.f;
+  auto ext_acc_count = 0u;
+  for (const auto &qpart : query_parts) {
+    // Get the maximum accuracy for this query part between every part of target
+    // except first
+    auto max_acc = 0.f;
+    for (size_t tidx = 1; tidx < target_parts.size(); tidx++) {
+      auto part_acc = normalized_edit_distance(qpart, target_parts[tidx]);
+      if (part_acc > max_acc) {
+        max_acc = part_acc;
+      }
+    }
+
+    // Don't update count if we haven't found a single match yet
+    if (ext_acc_sum != 0 || max_acc > 0.6f)
+      ext_acc_count++;
+    ext_acc_sum += max_acc;
+  }
+
+  // Add a penalty if the query and target have different number of parts
+  ext_acc_count += std::abs((float)target_parts.size() - query_parts.size());
+
+  auto ext_acc = ext_acc_sum / (ext_acc_count ? ext_acc_count : 1u);
+
+  // if (target_stem == "main")
+  //   std::cout << "Query: " << vec_to_str(query_parts)
+  //             << ", Target: " << vec_to_str(target_parts)
+  //             << ", Stem Acc: " << stem_acc << ", Ext Acc: " << ext_acc
+  //             << std::endl;
+
+  // Weighted sum
+  auto neg_ext_acc = ext_acc_count == 0 ? 1.f - ext_acc : ext_acc;
+  auto accuracy = 0.7f * stem_acc + 0.3f * neg_ext_acc;
   return {.type = Found,
           .match_start_idx = 0,
           .match_length = 0,
