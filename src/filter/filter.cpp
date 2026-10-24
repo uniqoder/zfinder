@@ -213,7 +213,7 @@ FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
 
   // Reward for containing the query
   if (item.string().find(arg) != std::string::npos)
-    accuracy += 0.1f;
+    accuracy += 0.4f;
   accuracy = std::clamp(accuracy, 0.f, 1.f);
 
   return {.type = Found,
