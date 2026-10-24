@@ -26,14 +26,20 @@ int main(int argc, char *argv[]) {
   Args args = parse_arguments(argc, argv);
 
   if (!std::filesystem::exists(args.base_dir)) {
-    std::cerr << "Error: " << "Either the base directory \"" << args.base_dir
+    std::cerr << "Error: Either the base directory \"" << args.base_dir
               << "\" doesn't exist, or we can't access it.\n";
     return 1;
   }
 
+  if (!std::filesystem::is_directory(args.base_dir)) {
+    std::cerr << "Error: The provided path is not a directory: "
+              << args.base_dir << "\n";
+    return 2;
+  }
+
   if (args.filters.size() == 0) {
     std::cerr << "Error: No filters provided. Use --help flag to see usage.\n";
-    return 2;
+    return 3;
   }
 
   for (const auto &filter : args.filters) {
@@ -41,7 +47,7 @@ int main(int argc, char *argv[]) {
       std::cerr << "Error: Invalid argument '" << filter.arg << "' to "
                 << getFilterName(filter)
                 << " filter. Use --help flag to see the usage.\n";
-      return 3;
+      return 4;
     }
   }
 
