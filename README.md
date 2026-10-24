@@ -21,7 +21,7 @@ It supports filtering by name, extension, size, and item type. Name filter uses 
 
 `zfinder` is a command-line program. You provide filters and configuration options through command-line arguments.
 
-The following arguments are planned for `zfinder`:
+The following arguments are implemented for `zfinder`:
 
 | Long option | Short option | Input type | Example | Description |
 |---|---|---|---|---|

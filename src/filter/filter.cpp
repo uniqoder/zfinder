@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <bits/fs_dir.h>
+#include <cctype>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -182,15 +183,22 @@ template <typename T> std::string vec_to_str(const std::vector<T> &vec) {
   return oss.str();
 }
 
-FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
-  auto target_parts = split_str(item.filename().string(), '.');
-  auto query_parts = split_str(arg, '.');
+std::string toLower(std::string str) {
+  std::transform(str.begin(), str.end(), str.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return str;
+}
 
-  auto target_stem = target_parts[0];
+FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
+  auto target = toLower(item.filename().string());
+  auto query = toLower(arg);
+
+  auto target_parts = split_str(target, '.');
+  auto query_parts = split_str(query, '.');
 
   auto acc_sum = 0.f;
   auto acc_count = 0u;
-  for (const auto &qpart : query_parts) {
+  for (auto qpart : query_parts) {
     // Get the maximum accuracy for this query part between every part of target
     auto max_acc = 0.f;
     for (const auto &tpart : target_parts) {
@@ -212,7 +220,7 @@ FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
   auto accuracy = acc_sum / acc_count;
 
   // Reward for containing the query
-  if (item.string().find(arg) != std::string::npos)
+  if (target.find(query) != std::string::npos)
     accuracy += 0.4f;
   accuracy = std::clamp(accuracy, 0.f, 1.f);
 
