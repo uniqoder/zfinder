@@ -87,6 +87,8 @@ Sizes are specified as numbers with an optional suffix. Sizes are measured in by
 
 Fuzzy name matching uses Levenshtein's Edit Distance algorithm to find the distance between the query and target.
 Then, this distance is normalized by dividing it by the max length between the query and target.
+Accuracy reduces when target and query contain different number of parts (separated at '.').
+Target string containing the query as a sub-string increases accuracy.
 
 ### Examples
 
