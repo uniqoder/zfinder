@@ -8,8 +8,9 @@
 struct Args {
   std::string base_dir;
   std::vector<Filter> filters;
-  bool dir_size = false;
   uint32_t max_depth = 9999;
+  bool dir_size = false;
+  bool show_best = false;
 };
 
 Args parse_arguments(int argc, char *argv[]);

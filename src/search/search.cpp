@@ -18,21 +18,29 @@ performSearch(const fs::path &root, const std::vector<Filter> &filters,
   std::vector<SearchResult> results;
 
   bool isMatch;
+  bool accAccumulationStarted;
   SearchResult result;
+  result.accuracy = 0;
   for (const auto &entry : fs::directory_iterator(root)) {
     isMatch = true;
+    accAccumulationStarted = false;
     result.match_starts.clear();
     result.match_ends.clear();
     result.item_path = entry.path();
+    result.accuracy = 0;
 
     fs::file_status fstatus = entry.symlink_status();
 
     for (const auto &filter : filters) {
       auto fresult = applyFilter(result.item_path, filter, fstatus);
       if (fresult.type == FilterResultType::Found) {
-        if (fresult.score > 0.6f) {
-          result.accuracy = fresult.score;
-        } else {
+        result.accuracy += fresult.score;
+        if (accAccumulationStarted)
+          result.accuracy /= 2.f;
+        else
+          accAccumulationStarted = true;
+
+        if (result.accuracy < 0.5f) {
           isMatch = false;
           break;
         }

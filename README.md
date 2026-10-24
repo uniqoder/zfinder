@@ -12,7 +12,7 @@ It supports filtering by name, extension, size, and item type. Name filter uses 
 
 - The maximum recursion depth can be configured through command-line arguments.
 - When a name or extension filter is used, colors indicate which part of each item's name matched.
-- Results are streamed without any order but the top ranking results are shown at the end.
+- Results are streamed without any order but the top ranking results are shown at the end (with a special flag).
 - Every item must satisfy each filter to succeed.
 
 ---
@@ -31,6 +31,7 @@ The following arguments are planned for `zfinder`:
 | `--size` | `-s` | Size | `--size "<100M"` | Matches an item's size exactly. |
 | `--max-depth` | `-d` | Number | `--max-depth 2` | Limits the maximum recursion depth. Depth 0 is the base directory. |
 | `--dir-size` | `-ds` | None | `-ds` | Calculates size of directories based on their elements. |
+| `--show-best` | `-sb` | None | `--show-best` | Lists the best matches at the end. Toggles automatically when Name filter is used. |
 | `--help` | `-h` | None | `-h` | Prints some helpful text... |
 
 The exact command looks like this:

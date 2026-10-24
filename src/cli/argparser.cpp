@@ -21,6 +21,7 @@ void print_help(std::string cmd) {
          "Depth 0 is the base directory.\n"
          "   --dir-size, -ds             | Calculates size of directories "
          "based on their elements.\n"
+         "   --show-best, -sb            | Lists the best matches at the end.\n"
          "\nSize prefixes:\n"
          "   K = *10^3\n"
          "   M = *10^6\n"
@@ -114,6 +115,8 @@ Args parse_arguments(int argc, char **argv) {
       args.max_depth = n;
     } else if (streq(argv[i], "--dir-size") || streq(argv[i], "-ds")) {
       args.dir_size = true;
+    } else if (streq(argv[i], "--show-best") || streq(argv[i], "-sb")) {
+      args.show_best = true;
     } else if (streq(argv[i], "--help") || streq(argv[i], "-h")) {
       print_help(argv[0]);
       exit(EXIT_SUCCESS);

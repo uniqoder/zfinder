@@ -70,12 +70,16 @@ int main(int argc, char *argv[]) {
       performSearch(args.base_dir, args.filters, args.max_depth, printResult);
   sortSearchResults(results);
 
-  std::cout << "\nBest matches:\n";
-  for (const auto &result : results) {
-    if (result.accuracy < 0.7f)
-      continue;
-    int score = std::round(result.accuracy * 100);
-    std::cout << score << "% " << result.item_path.string() << "\n";
+  if (args.show_best ||
+      std::find_if(results.begin(), results.end(),
+                   [](auto r) { return r.accuracy < 1.f; }) != results.end()) {
+    std::cout << "\nBest matches:\n";
+    for (const auto &result : results) {
+      if (result.accuracy < 0.7f)
+        continue;
+      int score = std::round(result.accuracy * 100);
+      std::cout << score << "% " << result.item_path.string() << "\n";
+    }
   }
 
   return 0;
