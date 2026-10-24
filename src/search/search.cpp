@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <vector>
 
 void sortSearchResults(std::vector<SearchResult> &results) {
@@ -10,9 +11,10 @@ void sortSearchResults(std::vector<SearchResult> &results) {
             [](auto a, auto b) { return a.accuracy > b.accuracy; });
 }
 
-std::vector<SearchResult> performSearch(const fs::path &root,
-                                        const std::vector<Filter> &filters,
-                                        uint32_t max_depth) {
+std::vector<SearchResult>
+performSearch(const fs::path &root, const std::vector<Filter> &filters,
+              uint32_t max_depth,
+              const std::function<void(const SearchResult &)> &onResult) {
   std::vector<SearchResult> results;
 
   bool isMatch;
@@ -49,11 +51,12 @@ std::vector<SearchResult> performSearch(const fs::path &root,
 
     if (isMatch) {
       results.push_back(result);
+      onResult(result);
     }
 
     if (fs::is_directory(fstatus) && max_depth > 0) {
       auto child_results =
-          performSearch(result.item_path, filters, max_depth - 1);
+          performSearch(result.item_path, filters, max_depth - 1, onResult);
       results.reserve(results.size() + child_results.size());
       results.insert(results.end(), child_results.begin(), child_results.end());
     }

@@ -19,9 +19,8 @@ void print_help(std::string cmd) {
          "   --size, -s <size>           | Matches an item's size exactly.\n"
          "   --max-depth, -d <depth>     | Limits the maximum recursion depth. "
          "Depth 0 is the base directory.\n"
-         "   --no-threading, -nt         | Disables multithreading during the "
-         "search.\n"
-         "   --no-color, -nc             | Disables colored output.\n"
+         "   --dir-size, -ds             | Calculates size of directories "
+         "based on their elements.\n"
          "\nSize prefixes:\n"
          "   K = *10^3\n"
          "   M = *10^6\n"
@@ -113,10 +112,8 @@ Args parse_arguments(int argc, char **argv) {
 
       uint32_t n = strtoul(argv[++i], nullptr, 10);
       args.max_depth = n;
-    } else if (streq(argv[i], "--no-threading") || streq(argv[i], "-nt")) {
-      args.do_threading = false;
-    } else if (streq(argv[i], "--no-color") || streq(argv[i], "-nc")) {
-      args.show_colors = false;
+    } else if (streq(argv[i], "--dir-size") || streq(argv[i], "-ds")) {
+      args.dir_size = true;
     } else if (streq(argv[i], "--help") || streq(argv[i], "-h")) {
       print_help(argv[0]);
       exit(EXIT_SUCCESS);

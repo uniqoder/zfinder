@@ -9,15 +9,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include <iostream>
-#include <map>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#define MAX_DIR_CACHE_COUNT 1024
 
 namespace fs = std::filesystem;
 
@@ -37,8 +32,6 @@ const auto SIZE_SUFFIX_TO_MULTIPLE = [] {
   a['t'] = 1024l * 1024l * 1024l * 1024l;
   return a;
 }();
-
-std::map<std::string, size_t> directory_size_cache;
 
 void sortFilters(std::vector<Filter> &filters) {
   std::sort(filters.begin(), filters.end(),
@@ -146,11 +139,6 @@ size_t getSize(fs::path item, fs::file_status fstatus) {
   }
 
   if (fs::is_directory(fstatus)) {
-    if (directory_size_cache.find(item.string()) !=
-        directory_size_cache.end()) {
-      return directory_size_cache.at(item.string());
-    }
-
     size_t size = 0;
     size_t child_count = 0;
     for (const auto &entry : fs::directory_iterator(item)) {
@@ -158,8 +146,6 @@ size_t getSize(fs::path item, fs::file_status fstatus) {
       size += getSize(entry, fs::symlink_status(entry));
     }
 
-    if (child_count > 0 && directory_size_cache.size() < MAX_DIR_CACHE_COUNT)
-      directory_size_cache[item.string()] = size;
     return size;
   }
 
@@ -240,7 +226,7 @@ FilterResult applyExtensionFilter(const fs::path &item,
     return {.type = FilterResultType::Found,
             .match_start_idx = pos,
             .match_length = arg.length(),
-            .score = 0};
+            .score = 1.f};
   return {.type = FilterResultType::NotFound,
           .match_start_idx = 0,
           .match_length = 0,
@@ -253,7 +239,7 @@ FilterResult applyTypeFilter(fs::file_status status, const std::string &arg) {
         .type = (c ? FilterResultType::Found : FilterResultType::NotFound),
         .match_start_idx = 0,
         .match_length = 0,
-        .score = 0};
+        .score = c ? 1.f : 0};
   };
 
   if (!fs::exists(status))
@@ -275,11 +261,12 @@ FilterResult applySizeFilter(const fs::path &item, const std::string &arg,
                                     : FilterResultType::NotFound,
                           .match_start_idx = 0,
                           .match_length = 0,
-                          .score = 0};
+                          .score = c ? 1.f : 0};
   };
 
-  if (!fs::exists(status))
+  if (!fs::exists(status)) {
     return result(false);
+  }
 
   int64_t item_size = getSize(item, status);
   auto sizeFilter = parseSize(arg);

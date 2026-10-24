@@ -12,8 +12,7 @@ It supports filtering by name, extension, size, and item type. Name filter uses 
 
 - The maximum recursion depth can be configured through command-line arguments.
 - When a name or extension filter is used, colors indicate which part of each item's name matched.
-- Searches are multithreaded by default. Work is parallelized at the recursion level, with each sub-search running in its own thread from a thread pool. Threading can be disabled.
-- Results are ranked, but otherwise have no guaranteed order.
+- Results are streamed without any order but the top ranking results are shown at the end.
 - Every item must satisfy each filter to succeed.
 
 ---
@@ -31,8 +30,7 @@ The following arguments are planned for `zfinder`:
 | `--extension` | `-e` | String | `--extension "txt"` | Matches an item's extension exactly. An empty string matches items without an extension. |
 | `--size` | `-s` | Size | `--size "<100M"` | Matches an item's size exactly. |
 | `--max-depth` | `-d` | Number | `--max-depth 2` | Limits the maximum recursion depth. Depth 0 is the base directory. |
-| `--no-threading` | `-nt` | None | `--no-threading` | Disables multithreading during the search. |
-| `--no-color` | `-nc` | None | `--no-color` | Disables colored output. |
+| `--dir-size` | `-ds` | None | `-ds` | Calculates size of directories based on their elements. |
 | `--help` | `-h` | None | `-h` | Prints some helpful text... |
 
 The exact command looks like this:
@@ -83,6 +81,12 @@ Sizes are specified as numbers with an optional suffix. Sizes are measured in by
 | `g` | \(2^{30}\) |
 | `t` | \(2^{40}\) |
 
+
+#### Fuzzy matching
+
+Fuzzy name matching uses Levenshtein's Edit Distance algorithm to find the distance between the query and target.
+Then, this distance is normalized by dividing it by the max length between the query and target.
+
 ### Examples
 
 ```bash
@@ -90,7 +94,7 @@ zf ./logs --name "test" --type f --size "<=50K"
 zf src -e "cpp" -t f
 zf . -name "tests" -t d
 zf foo/bar --size "24K..1M"
-zf ~/.local/bin --type l --max-depth 0 -nc | uniq | sort
+zf ~/.local/bin --type l --max-depth 0 -nc | sort
 ```
 
 ---

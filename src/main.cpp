@@ -1,8 +1,10 @@
 #include "cli/argparser.hpp"
 #include "filter/filter.hpp"
 #include "search/search.hpp"
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 
 std::string getFilterName(const Filter &filter) {
@@ -43,11 +45,29 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  auto contains_file_type =
+      std::find_if(args.filters.begin(), args.filters.end(), [](Filter f) {
+        return f.type == FilterType::Type && f.arg == "f";
+      }) != args.filters.end();
+
+  if (!args.dir_size && !contains_file_type) {
+    args.filters.push_back({FilterType::Type, "f"});
+  }
+
   sortFilters(args.filters);
-  auto results = performSearch(args.base_dir, args.filters, args.max_depth);
+
+  const auto printResult = [](const SearchResult &result) {
+    std::cout << std::round(result.accuracy * 100) << "% "
+              << result.item_path.string() << "\n";
+  };
+  auto results =
+      performSearch(args.base_dir, args.filters, args.max_depth, printResult);
   sortSearchResults(results);
 
+  std::cout << "\nBest matches:\n";
   for (const auto &result : results) {
+    if (result.accuracy < 0.7f)
+      continue;
     int score = std::round(result.accuracy * 100);
     std::cout << score << "% " << result.item_path.string() << "\n";
   }

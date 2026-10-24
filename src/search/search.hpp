@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -16,6 +17,7 @@ struct SearchResult {
 };
 
 void sortSearchResults(std::vector<SearchResult> &results);
-std::vector<SearchResult> performSearch(const fs::path &root,
-                                        const std::vector<Filter> &filters,
-                                        uint32_t max_depth);
+std::vector<SearchResult>
+performSearch(const fs::path &root, const std::vector<Filter> &filters,
+              uint32_t max_depth,
+              const std::function<void(const SearchResult &)> &onResult);
