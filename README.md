@@ -4,6 +4,8 @@
 
 It supports filtering by name, extension, size, and item type. Name filter uses fuzzy matching; the other filters use exact matching.
 
+![zfinder demo](./docs/demo.gif)
+
 ---
 
 ## How It Works
