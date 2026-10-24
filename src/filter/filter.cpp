@@ -209,8 +209,13 @@ FilterResult applyNameFilter(const fs::path &item, const std::string &arg) {
 
   // Add a penalty if the query and target have different number of parts
   acc_count += std::abs((float)target_parts.size() - query_parts.size());
-
   auto accuracy = acc_sum / acc_count;
+
+  // Reward for containing the query
+  if (item.string().find(arg) != std::string::npos)
+    accuracy += 0.1f;
+  accuracy = std::clamp(accuracy, 0.f, 1.f);
+
   return {.type = Found,
           .match_start_idx = 0,
           .match_length = 0,
